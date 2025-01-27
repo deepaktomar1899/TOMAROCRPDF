@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TOMAROCRPDF</title>
+    <style>
+        /* Global styles for light mode */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            text-align: center;
+            background-color: #f4f4f4;
+            color: #333;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        /* Styles for dark mode */
+        body.dark-mode {
+            background-color: #121212;
+            color: #f4f4f4;
+        }
+
+        input[type="file"] {
+            margin: 20px;
+        }
+
+        button {
+            padding: 10px 20px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: background 0.3s;
+        }
+
+        button:hover {
+            background: #45a049;
+        }
+
+        #darkModeToggle {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            padding: 5px 10px;
+            font-size: 14px;
+        }
+
+        #startOverButton {
+            display: none;
+            margin-top: 20px;
+            background: #f44336;
+        }
+
+        #result {
+            margin-top: 20px;
+            white-space: pre-wrap;
+            text-align: left;
+            max-width: 80%;
+            margin: 0 auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>TOMAROCRPDF</h1>
+    <button id="darkModeToggle">🌙 Dark Mode</button>
+    <form id="uploadForm">
+        <input type="file" id="file" accept=".pdf" required>
+        <button type="submit">Convert</button>
+    </form>
+    <button id="startOverButton">🔄 Start Over</button>
+    <div id="result"></div>
+
+    <script>
+        // Toggle dark mode
+        const toggleButton = document.getElementById('darkModeToggle');
+        toggleButton.addEventListener('click', () => {
+            document.body.classList.toggle('dark-mode');
+            const isDarkMode = document.body.classList.contains('dark-mode');
+            toggleButton.textContent = isDarkMode ? '☀️ Light Mode' : '🌙 Dark Mode';
+        });
+
+        // Handle form submission and file upload
+        const uploadForm = document.getElementById('uploadForm');
+        const resultDiv = document.getElementById('result');
+        const startOverButton = document.getElementById('startOverButton');
+
+        uploadForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const fileInput = document.getElementById('file');
+            const file = fileInput.files[0];
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            const response = await fetch('/upload', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                resultDiv.textContent = data.text || 'No text found!';
+            } else {
+                const error = await response.json();
+                resultDiv.textContent = `Error: ${error.error}`;
+            }
+
+            // Show the "Start Over" button after processing
+            startOverButton.style.display = 'block';
+        });
+
+        // Handle "Start Over" functionality
+        startOverButton.addEventListener('click', () => {
+            // Reset the form
+            uploadForm.reset();
+            // Clear the result text
+            resultDiv.textContent = '';
+            // Hide the "Start Over" button
+            startOverButton.style.display = 'none';
+        });
+    </script>
+</body>
+</html>
