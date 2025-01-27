@@ -1,14 +1,11 @@
-from flask import Flask, request, render_template, jsonify
-import pytesseract
+from flask import Flask, render_template, request, jsonify
 from pdf2image import convert_from_path
+import pytesseract
+from PIL import Image
+import io
 import os
 
 app = Flask(__name__)
-UPLOAD_FOLDER = 'uploads'
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-
-if not os.path.exists(UPLOAD_FOLDER):
-    os.makedirs(UPLOAD_FOLDER)
 
 @app.route('/')
 def index():
@@ -16,28 +13,39 @@ def index():
 
 @app.route('/upload', methods=['POST'])
 def upload_file():
-    if 'file' not in request.files:
-        return jsonify({'error': 'No file uploaded!'}), 400
-
     file = request.files['file']
-    if file.filename == '':
-        return jsonify({'error': 'No selected file!'}), 400
+    if file:
+        # Check if the file is a PDF
+        if file.filename.endswith('.pdf'):
+            text = convert_pdf_to_text(file)
+            return jsonify({'text': text})
 
-    filepath = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
-    file.save(filepath)
+        # If the file is an image, try OCR
+        elif file.filename.lower().endswith(('png', 'jpg', 'jpeg')):
+            text = ocr_from_image(file)
+            return jsonify({'text': text})
 
-    # Convert PDF to images and extract text
+        return jsonify({'error': 'Invalid file format. Please upload a PDF or an image.'})
+    
+    return jsonify({'error': 'No file uploaded.'})
+
+def convert_pdf_to_text(file):
+    """Convert a PDF to text by first converting it to images and then performing OCR."""
+    # Convert PDF to list of images
+    images = convert_from_path(file, 300)  # 300 dpi for better quality
+    
     text = ""
-    try:
-        images = convert_from_path(filepath)
-        for image in images:
-            text += pytesseract.image_to_string(image)
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-    finally:
-        os.remove(filepath)
+    for image in images:
+        # Convert image to text using Tesseract OCR
+        text += pytesseract.image_to_string(image, lang='eng+hin')  # Add 'hin' for Hindi OCR support
+    
+    return text
 
-    return jsonify({'text': text})
+def ocr_from_image(file):
+    """Extract text from an image using OCR."""
+    image = Image.open(io.BytesIO(file.read()))
+    text = pytesseract.image_to_string(image, lang='eng+hin')  # Add 'hin' for Hindi OCR support
+    return text
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    app.run(debug=True)
