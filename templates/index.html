@@ -5,121 +5,107 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TOMAROCRPDF</title>
     <style>
-        /* Global styles for light mode */
         body {
             font-family: Arial, sans-serif;
-            margin: 20px;
+            margin: 0;
+            padding: 0;
+            background-color: #f0f0f0;
+        }
+        .container {
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
             text-align: center;
-            background-color: #f4f4f4;
-            color: #333;
-            transition: background-color 0.3s, color 0.3s;
         }
-
-        /* Styles for dark mode */
-        body.dark-mode {
-            background-color: #121212;
-            color: #f4f4f4;
-        }
-
         input[type="file"] {
-            margin: 20px;
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 20px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
         }
-
         button {
             padding: 10px 20px;
-            background: #4CAF50;
+            background-color: #4CAF50;
             color: white;
             border: none;
+            border-radius: 4px;
             cursor: pointer;
-            border-radius: 5px;
-            transition: background 0.3s;
+            width: 100%;
+            font-size: 16px;
         }
-
         button:hover {
-            background: #45a049;
+            background-color: #45a049;
         }
-
-        #darkModeToggle {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            padding: 5px 10px;
-            font-size: 14px;
-        }
-
-        #startOverButton {
+        .loading {
             display: none;
+            text-align: center;
+            padding: 10px;
+            background-color: #f0f0f0;
             margin-top: 20px;
-            background: #f44336;
         }
-
-        #result {
+        .text-output {
             margin-top: 20px;
-            white-space: pre-wrap;
-            text-align: left;
-            max-width: 80%;
-            margin: 0 auto;
+            padding: 10px;
+            background-color: #f9f9f9;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+            height: 200px;
+            overflow-y: scroll;
         }
     </style>
 </head>
 <body>
-    <h1>TOMAROCRPDF</h1>
-    <button id="darkModeToggle">🌙 Dark Mode</button>
-    <form id="uploadForm">
-        <input type="file" id="file" accept=".pdf" required>
-        <button type="submit">Convert</button>
-    </form>
-    <button id="startOverButton">🔄 Start Over</button>
-    <div id="result"></div>
+
+    <div class="container">
+        <h1>TOMAROCRPDF</h1>
+        <input type="file" id="fileInput" accept=".pdf, image/*">
+        <button onclick="uploadFile()">Convert</button>
+        <div id="loading" class="loading">Processing... Please wait.</div>
+        <div id="output" class="text-output"></div>
+    </div>
 
     <script>
-        // Toggle dark mode
-        const toggleButton = document.getElementById('darkModeToggle');
-        toggleButton.addEventListener('click', () => {
-            document.body.classList.toggle('dark-mode');
-            const isDarkMode = document.body.classList.contains('dark-mode');
-            toggleButton.textContent = isDarkMode ? '☀️ Light Mode' : '🌙 Dark Mode';
-        });
+        function uploadFile() {
+            var fileInput = document.getElementById('fileInput');
+            var file = fileInput.files[0];
+            var output = document.getElementById('output');
+            var loading = document.getElementById('loading');
+            output.innerHTML = '';
+            loading.style.display = 'block';  // Show loading animation
 
-        // Handle form submission and file upload
-        const uploadForm = document.getElementById('uploadForm');
-        const resultDiv = document.getElementById('result');
-        const startOverButton = document.getElementById('startOverButton');
-
-        uploadForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const fileInput = document.getElementById('file');
-            const file = fileInput.files[0];
-
-            const formData = new FormData();
-            formData.append('file', file);
-
-            const response = await fetch('/upload', {
-                method: 'POST',
-                body: formData
-            });
-
-            if (response.ok) {
-                const data = await response.json();
-                resultDiv.textContent = data.text || 'No text found!';
-            } else {
-                const error = await response.json();
-                resultDiv.textContent = `Error: ${error.error}`;
+            if (!file) {
+                alert('Please select a file');
+                return;
             }
 
-            // Show the "Start Over" button after processing
-            startOverButton.style.display = 'block';
-        });
+            var formData = new FormData();
+            formData.append('file', file);
 
-        // Handle "Start Over" functionality
-        startOverButton.addEventListener('click', () => {
-            // Reset the form
-            uploadForm.reset();
-            // Clear the result text
-            resultDiv.textContent = '';
-            // Hide the "Start Over" button
-            startOverButton.style.display = 'none';
-        });
+            fetch('/upload', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                loading.style.display = 'none';  // Hide loading animation
+                if (data.text) {
+                    output.innerText = data.text;
+                } else if (data.error) {
+                    output.innerText = "Error: " + data.error;
+                }
+            })
+            .catch(error => {
+                loading.style.display = 'none';  // Hide loading animation
+                output.innerText = "Error: " + error.message;
+            });
+        }
     </script>
+
 </body>
 </html>
